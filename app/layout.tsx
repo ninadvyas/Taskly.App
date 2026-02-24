@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import ProvidersWrapper from "./ProvidersWrapper";
 import CommandPalette from "@/components/search/command-palette";
+import PageProgressBar from "@/components/ui/page-progress-bar";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -72,6 +73,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ProvidersWrapper>
+          <PageProgressBar />
           {children}
           <CommandPalette />
         </ProvidersWrapper>

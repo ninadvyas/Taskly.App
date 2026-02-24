@@ -143,38 +143,49 @@ export async function getTaskCountByStatus() {
   return { starting, progress, done };
 }
 
+// Shared UTC date label so server timezone never affects grouping
+function utcDateLabel(d: Date): string {
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 export async function getTasksCreatedPerDay(): Promise<{ date: string; count: number }[]> {
   const session = await auth();
   const userId = session?.user?.id;
 
-  // Build last-7-days date range
+  // Not signed in → return zero-filled array (no data leakage)
+  if (!userId) {
+    const empty: { date: string; count: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setUTCDate(d.getUTCDate() - i);
+      empty.push({ date: utcDateLabel(d), count: 0 });
+    }
+    return empty;
+  }
+
+  // Build last-7-days date range using UTC to stay consistent with DB
   const days: { date: string; count: number }[] = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
-    d.setDate(d.getDate() - i);
-    days.push({
-      date: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      count: 0,
-    });
+    d.setUTCDate(d.getUTCDate() - i);
+    days.push({ date: utcDateLabel(d), count: 0 });
   }
 
   const since = new Date();
-  since.setDate(since.getDate() - 6);
-  since.setHours(0, 0, 0, 0);
+  since.setUTCDate(since.getUTCDate() - 6);
+  since.setUTCHours(0, 0, 0, 0);
 
   const tasks = await prisma.task.findMany({
-    where: {
-      ...(userId ? { userId } : {}),
-      createdAt: { gte: since },
-    },
+    where: { userId, createdAt: { gte: since } },
     select: { createdAt: true },
   });
 
   for (const task of tasks) {
-    const label = new Date(task.createdAt).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
+    const label = utcDateLabel(new Date(task.createdAt));
     const entry = days.find((d) => d.date === label);
     if (entry) entry.count++;
   }
@@ -185,8 +196,10 @@ export async function getTasksCreatedPerDay(): Promise<{ date: string; count: nu
 export async function getRecentTasks(limit = 8) {
   const session = await auth();
   const userId = session?.user?.id;
+  // Not signed in → return nothing
+  if (!userId) return [];
   return prisma.task.findMany({
-    where: userId ? { userId } : {},
+    where: { userId },
     orderBy: { createdAt: "desc" },
     take: limit,
   });

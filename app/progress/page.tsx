@@ -1,23 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
 import React from "react";
-
-export const metadata: Metadata = {
-    title: "Progress",
-    description:
-        "Track your productivity — view task completion stats, a 7-day creation chart, status breakdown, and recent activity.",
-    openGraph: {
-        title: "Progress | Taskly",
-        description:
-            "Track your productivity — view task completion stats, a 7-day creation chart, status breakdown, and recent activity.",
-        images: [{ url: "/images/progress.png", width: 1200, height: 630, alt: "Taskly Progress Dashboard" }],
-    },
-    twitter: {
-        card: "summary_large_image",
-        title: "Progress | Taskly",
-        description: "Track your productivity with Taskly's analytics dashboard.",
-        images: ["/images/progress.png"],
-    },
-};
 import Navbar from "@/components/navbar";
 import {
     getTaskCountByStatus,
@@ -46,6 +30,24 @@ import LineChartComp from "@/components/charts/line-chart";
 import Charts from "@/components/charts";
 import { CheckCircle, CircleDot, Circle, ListTodo } from "lucide-react";
 
+export const metadata: Metadata = {
+    title: "Progress",
+    description:
+        "Track your productivity — view task completion stats, a 7-day creation chart, status breakdown, and recent activity.",
+    openGraph: {
+        title: "Progress | Taskly",
+        description:
+            "Track your productivity — view task completion stats, a 7-day creation chart, status breakdown, and recent activity.",
+        images: [{ url: "/images/progress.png", width: 1200, height: 630, alt: "Taskly Progress Dashboard" }],
+    },
+    twitter: {
+        card: "summary_large_image",
+        title: "Progress | Taskly",
+        description: "Track your productivity with Taskly's analytics dashboard.",
+        images: ["/images/progress.png"],
+    },
+};
+
 const PRIORITY_CONFIG: Record<string, { label: string; className: string }> = {
     low: { label: "Low", className: "text-emerald-500 font-medium" },
     medium: { label: "Medium", className: "text-amber-500 font-medium" },
@@ -53,6 +55,12 @@ const PRIORITY_CONFIG: Record<string, { label: string; className: string }> = {
 };
 
 export default async function ProgressPage() {
+    // Auth guard — redirect unauthenticated users
+    const session = await auth();
+    if (!session?.user) {
+        redirect("/signin");
+    }
+
     const [counts, perDay, recent] = await Promise.all([
         getTaskCountByStatus(),
         getTasksCreatedPerDay(),
