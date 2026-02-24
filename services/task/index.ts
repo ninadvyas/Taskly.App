@@ -18,10 +18,56 @@ function revalidatePageData() {
 async function getAccessToken(userId: string): Promise<string | null> {
   const account = await prisma.account.findFirst({
     where: { userId, provider: "google" },
-    select: { access_token: true },
+    select: {
+      access_token: true,
+      refresh_token: true,
+      expires_at: true,
+    },
   });
-  return account?.access_token ?? null;
+  if (!account) return null;
+
+  // Token still valid — return it directly
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (account.access_token && account.expires_at && account.expires_at > nowSec) {
+    return account.access_token;
+  }
+
+  // Token expired — attempt refresh
+  if (!account.refresh_token) {
+    console.warn("No refresh_token stored for user:", userId);
+    return null;
+  }
+
+  try {
+    const res = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: process.env.GOOGLE_CLIENT_ID!,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+        grant_type: "refresh_token",
+        refresh_token: account.refresh_token,
+      }),
+    });
+    if (!res.ok) {
+      console.error("Token refresh failed:", await res.text());
+      return null;
+    }
+    const json = await res.json();
+    await prisma.account.updateMany({
+      where: { userId, provider: "google" },
+      data: {
+        access_token: json.access_token,
+        expires_at: Math.floor(Date.now() / 1000) + (json.expires_in ?? 3600),
+      },
+    });
+    return json.access_token as string;
+  } catch (err) {
+    console.error("getAccessToken refresh error:", err);
+    return null;
+  }
 }
+
 
 export async function createTask(task: FormSchema) {
   const session = await auth();

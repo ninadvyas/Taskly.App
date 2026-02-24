@@ -1,7 +1,11 @@
-export { auth as middleware } from "@/auth";
+import NextAuth from "next-auth";
+import { authConfig } from "./auth.config";
+
+export const { auth: middleware } = NextAuth(authConfig);
 
 export const config = {
-  // Only apply auth checks to the NextAuth API routes themselves
-  matcher: ["/api/auth/:path*"],
+  // Intentionally empty — auth is handled per-page via server-side auth() calls.
+  // Never intercept /api/auth/* here; doing so blocks OAuth callbacks.
+  matcher: [],
 };
 

@@ -1,27 +1,35 @@
 "use client";
 import { Task } from "@prisma/client";
 import React, { useState } from "react";
-import Modal from "../ui/modal";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import Form from "../form";
 
 type Props = {
   task: Task;
 };
-export default function TitleCell(props: Props) {
-  const { task } = props;
+export default function TitleCell({ task }: Props) {
   const [isOpen, setIsOpen] = useState(false);
-  const open = () => setIsOpen(true);
-  const close = () => setIsOpen(false);
   return (
     <>
-      <span onClick={open} className="hover:underline">
+      <span
+        onClick={() => setIsOpen(true)}
+        className="cursor-pointer hover:underline"
+      >
         {task.title}
       </span>
-      <Modal title="Task Details" isOpen={isOpen} close={close}>
-        <div className="min-w-[500px]">
-          <Form task={task} onSubmitOrDelete={close}  />
-        </div>
-      </Modal>
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Task</DialogTitle>
+          </DialogHeader>
+          <Form task={task} onSubmitOrDelete={() => setIsOpen(false)} />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

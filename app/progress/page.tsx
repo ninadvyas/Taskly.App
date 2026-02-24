@@ -23,6 +23,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import StatusBullet from "@/components/StatusBullet";
 import { TaskStatus } from "@/components/form/schema";
 import { getDate } from "@/utils/getDate";
@@ -48,14 +49,16 @@ export const metadata: Metadata = {
     },
 };
 
-const PRIORITY_CONFIG: Record<string, { label: string; className: string }> = {
-    low: { label: "Low", className: "text-emerald-500 font-medium" },
-    medium: { label: "Medium", className: "text-amber-500 font-medium" },
-    high: { label: "High", className: "text-red-500 font-semibold" },
+const PRIORITY_CONFIG: Record<
+    string,
+    { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
+> = {
+    low: { label: "Low", variant: "secondary" },
+    medium: { label: "Medium", variant: "outline" },
+    high: { label: "High", variant: "destructive" },
 };
 
 export default async function ProgressPage() {
-    // Auth guard — redirect unauthenticated users
     const session = await auth();
     if (!session?.user) {
         redirect("/signin");
@@ -68,7 +71,8 @@ export default async function ProgressPage() {
     ]);
 
     const total = counts.starting + counts.progress + counts.done;
-    const completionRate = total > 0 ? Math.round((counts.done / total) * 100) : 0;
+    const completionRate =
+        total > 0 ? Math.round((counts.done / total) * 100) : 0;
 
     const stats = [
         {
@@ -80,7 +84,7 @@ export default async function ProgressPage() {
             label: "Done",
             value: counts.done,
             icon: <CheckCircle className="h-4 w-4 text-emerald-500" />,
-            note: `${completionRate}% complete`,
+            note: `${completionRate}% completion rate`,
         },
         {
             label: "In Progress",
@@ -95,15 +99,17 @@ export default async function ProgressPage() {
     ];
 
     return (
-        <div className="h-screen flex flex-col px-80 overflow-hidden">
+        <div className="h-screen flex flex-col px-4 md:px-16 lg:px-32 xl:px-56 2xl:px-80 overflow-hidden">
             <Navbar />
             <div className="flex-1 overflow-y-auto py-6 space-y-6">
                 {/* Stat cards */}
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     {stats.map((s) => (
                         <Card key={s.label}>
-                            <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                                <CardDescription className="text-xs">{s.label}</CardDescription>
+                            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+                                <CardDescription className="text-xs font-medium">
+                                    {s.label}
+                                </CardDescription>
                                 {s.icon}
                             </CardHeader>
                             <CardContent>
@@ -117,8 +123,8 @@ export default async function ProgressPage() {
                 </div>
 
                 {/* Charts row */}
-                <div className="grid grid-cols-3 gap-4 h-[240px]">
-                    <div className="col-span-2 overflow-hidden">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[260px]">
+                    <div className="md:col-span-2 overflow-hidden">
                         <LineChartComp data={perDay} />
                     </div>
                     <div className="overflow-hidden">
@@ -161,11 +167,14 @@ export default async function ProgressPage() {
                                             <TableCell className="font-medium max-w-[240px] truncate">
                                                 {task.title}
                                             </TableCell>
-                                            <TableCell className="text-xs">
+                                            <TableCell>
                                                 {task.priority && PRIORITY_CONFIG[task.priority] ? (
-                                                    <span className={PRIORITY_CONFIG[task.priority].className}>
+                                                    <Badge
+                                                        variant={PRIORITY_CONFIG[task.priority].variant}
+                                                        className="text-xs"
+                                                    >
                                                         {PRIORITY_CONFIG[task.priority].label}
-                                                    </span>
+                                                    </Badge>
                                                 ) : (
                                                     <span className="text-muted-foreground/40">—</span>
                                                 )}
